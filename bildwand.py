@@ -2,13 +2,11 @@
 import numpy as np
 import sys
 from PIL import Image
-
-
+#generates a list of Strings containing the image in the GPN bildwand format
 def main (path,offx=0, offy=0):
 	img = Image.open(path)
 	im = np.array(img)
-	linelist = buildlines(im,len(im[1,1])==4,offx,offy)
-	print('\n'.join(linelist))
+	return buildlines(im,len(im[1,1])==4,offx,offy)
 
 #print(a)
 #print ('FOO',len(im),len(im[0]))
@@ -23,7 +21,7 @@ def buildlines(im,a,offx,offy):
 			rgbstr = buildrgbstr(im[y,x][:3])
 			rlist.append('PX %d %d %s' %(x+offx,y+offy,rgbstr) )
 	return rlist
-		
+
 def buildrgbstr(rgb):
 	return''.join(str(hex(c))[2:].zfill(2).upper() for c in rgb)
 
