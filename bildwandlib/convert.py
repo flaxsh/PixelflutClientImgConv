@@ -3,11 +3,10 @@ import numpy as np
 import sys
 from PIL import Image
 #generates a list of Strings containing the image in the GPN bildwand format
-def main (path,offx=0, offy=0):
-	img = Image.open(path)
+def main (img,offx=0, offy=0):
 	im = np.array(img)
-	return buildlines(im,len(im[1,1])==4,offx,offy)
-
+	rlist = buildlines(im,len(im[1,1])==4,offx,offy)
+	return rlist
 #print(a)
 #print ('FOO',len(im),len(im[0]))
 
