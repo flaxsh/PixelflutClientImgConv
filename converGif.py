@@ -1,5 +1,5 @@
 #!/bin/python
-from bildwandlib import convertStill
+import convert
 import sys
 from subprocess import call
 from PIL import Image
@@ -9,7 +9,7 @@ def main (path,offx=0, offy=0):
     cmdstr = 'tmpdir/out%d.png'
     call(["convert",path,'-coalesce',cmdstr])
     for filename in sorted(os.listdir('tmpdir')):
-            print('\n'.join(convertStill.main('tmpdir/'+str(filename),offx,offy)))
+            print('\n'.join(convert.main(Image.open('tmpdir/'+str(filename)).convert('RGBA'),offx,offy)))
             print('\n')
     call(['rm','-R','tmpdir'])
 if __name__ == '__main__' :
