@@ -20,11 +20,11 @@ class ImageSender:
         pixelSocket.sendall(self.__data)
         pixelSocket.shutdown(socket.SHUT_WR)
 
-    def Send(self, sendAsync=True):
+    def Send(self, sendAsync=True, threadCount=1):
         if sendAsync:
             thread = threading.Thread(target=self.__sendImage)
             thread.start()
-        else:
+        elif threadCount == 1:
             self.__sendImage()
 
     def SendContinuously(self):
@@ -33,12 +33,15 @@ class ImageSender:
 
 def parseArgs():
     parser = argparse.ArgumentParser()
+
     parser.add_argument("address")
     parser.add_argument("port", type=int)
-    parser.add_argument("-x", "--xoffset", type=int)
-    parser.add_argument("-y", "--yoffset", type=int)
+    
+    parser.add_argument("-x", "--xoffset", type=int, default=0)
+    parser.add_argument("-y", "--yoffset", type=int, default=0)
     parser.add_argument("-f", "--file")
     parser.add_argument("-l", "--linesFile")
+
     args = parser.parse_args()
     return args
 
@@ -49,10 +52,14 @@ def main():
         print("generating lines... ", end="")
         imageLines = generateFrame(args.file, args.xoffset, args.yoffset)
         print("done")
-    else:
+    elif args.linesFile is not None:
         print("reading lines file")
         imageLines = open(args.linesFile).readlines()
+    else:
+        print("must specify input")
+        sys.exit(1)
 
+    print("connecting to %s port %d" % (args.address, args.port))
     sender = ImageSender(args.address, args.port, imageLines)
     print("sending lines... ", end="")
     while True:
