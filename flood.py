@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import socket
 import sys
 import threading
@@ -11,7 +12,7 @@ class ImageSender:
     def __init__(self, address, port, imageLines):
         self.__address = address
         self.__port = port
-        self.__data = bytes("\n".join(imageLines).encode("ascii"))
+        self.__data = bytes("\n".join(l.strip() for l in imageLines).encode("ascii"))
 
     def __sendImage(self):
         pixelSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -26,16 +27,33 @@ class ImageSender:
         else:
             self.__sendImage()
 
+    def SendContinuously(self):
+        pass
 
-def main(address, port, filePath, xoffset=0, yoffset=0):
-    #address = "94.45.233.241"
-    #port = 1234
+
+def parseArgs():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("address")
+    parser.add_argument("port", type=int)
+    parser.add_argument("-x", "--xoffset", type=int)
+    parser.add_argument("-y", "--yoffset", type=int)
+    parser.add_argument("-f", "--file")
+    parser.add_argument("-l", "--linesFile")
+    args = parser.parse_args()
+    return args
+
+def main():
+    args = parseArgs()
     
-    print("generating lines... ", end="")
-    imageLines = generateFrame(filePath, int(xoffset), int(yoffset))
-    print("done")
+    if args.file is not None:
+        print("generating lines... ", end="")
+        imageLines = generateFrame(args.file, args.xoffset, args.yoffset)
+        print("done")
+    else:
+        print("reading lines file")
+        imageLines = open(args.linesFile).readlines()
 
-    sender = ImageSender(address, int(port), imageLines)
+    sender = ImageSender(args.address, args.port, imageLines)
     print("sending lines... ", end="")
     while True:
         sender.Send()
@@ -44,9 +62,5 @@ def main(address, port, filePath, xoffset=0, yoffset=0):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) >= 4 :
-        main(*sys.argv[1:])
-    else:
-        sys.stderr.write("Usage: %s <address> <port> <file> [xoffset] [yoffset]\n")
-        sys.exit(1)
+    main()
 
