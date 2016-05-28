@@ -4,8 +4,7 @@ import sys
 from PIL import Image
 
 def main (path,offx=0, offy=0):
-    img = Image.open(path)
-    return convert.main(img,offx,offy)
+    return convert.main(Image.open(path).convert('RGBA'),offx,offy)
 
 if __name__ == '__main__' :
 		if len(sys.argv) == 4:
