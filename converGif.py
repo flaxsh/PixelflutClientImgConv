@@ -8,10 +8,12 @@ def main (path,offx=0, offy=0):
     call(['mkdir','tmpdir'])
     cmdstr = 'tmpdir/out%d.png'
     call(["convert",path,'-coalesce',cmdstr])
+    framelist = []
     for filename in sorted(os.listdir('tmpdir')):
-            print('\n'.join(convert.main(Image.open('tmpdir/'+str(filename)).convert('RGBA'),offx,offy)))
-#            print('\n')
+        framelist.add(convert.main(Image.open('tmpdir/'+str(filename)).convert('RGBA'),offx,offy))
     call(['rm','-R','tmpdir'])
+    return framelist
+    
 if __name__ == '__main__' :
 		if len(sys.argv) == 4:
 			main(sys.argv[1],int(sys.argv[2]),int(sys.argv[3]))
