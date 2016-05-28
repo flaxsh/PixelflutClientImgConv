@@ -10,7 +10,7 @@ def main (path,offx=0, offy=0):
     call(["convert",path,'-coalesce',cmdstr])
     for filename in sorted(os.listdir('tmpdir')):
             print('\n'.join(convert.main(Image.open('tmpdir/'+str(filename)).convert('RGBA'),offx,offy)))
-            print('\n')
+#            print('\n')
     call(['rm','-R','tmpdir'])
 if __name__ == '__main__' :
 		if len(sys.argv) == 4:
