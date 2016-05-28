@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import argparse
+import math
+import random
 import socket
 import sys
 import threading
@@ -8,27 +10,53 @@ import time
 
 from convertStill import generateFrame
 
+class LinesBuffer:
+    def __init__(self, imageLines, encoding="ascii", randomize=False):
+        encodedLines = [(l.strip() + "\n").encode(encoding) for l in imageLines]
+        if randomize:
+            random.shuffle(encodedLines)
+        self.__data = [bytes(l) for l in encodedLines]
+
+    def GetData(self, chunkCount=1, chunkIndex=0):
+        #chunkSize = math.ceil(len(self.__data) / chunkCount)
+        #startIndex = chunkSize * chunkIndex
+        #endIndex = min(chunkSize * (chunkIndex + 1) - 1, len(self.__data))
+        #return self.__data[startIndex:endIndex]
+        return b"".join(self.__data[chunkIndex::chunkCount])
+
+
 class ImageSender:
     def __init__(self, address, port, imageLines):
         self.__address = address
         self.__port = port
-        self.__data = bytes("\n".join(l.strip() for l in imageLines).encode("ascii"))
+        self.__dataBuffer = LinesBuffer(imageLines, randomize=True)
 
-    def __sendImage(self):
+    def __sendData(self, data, continuous=False, delay=0.0):
         pixelSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         pixelSocket.connect((self.__address, self.__port))
-        pixelSocket.sendall(self.__data)
+
+        if continuous:
+            while True:
+                pixelSocket.sendall(data)
+                time.sleep(delay)
+        else:
+            pixelSocket.sendall(data)
+
         pixelSocket.shutdown(socket.SHUT_WR)
 
-    def Send(self, sendAsync=True, threadCount=1):
-        if sendAsync:
-            thread = threading.Thread(target=self.__sendImage)
-            thread.start()
-        elif threadCount == 1:
+    def Send(self, sync=False, threadCount=1):
+        if sync and threadCount == 1:
             self.__sendImage()
+        else:
+            threads = []
+            for i in range(threadCount):
+                data = self.__dataBuffer.GetData(threadCount, i)
+                threads.append(threading.Thread(target=self.__sendData, args=(data,)))
+                threads[i].start()
 
-    def SendContinuously(self):
-        pass
+            if sync:
+                for i in range(threadCount):
+                    threads[i].join()
 
 
 def parseArgs():
@@ -63,8 +91,8 @@ def main():
     sender = ImageSender(args.address, args.port, imageLines)
     print("sending lines... ", end="")
     while True:
-        sender.Send()
-        time.sleep(0.1)
+        sender.Send(False, 5)
+        time.sleep(0.5)
     print("done")
 
 
