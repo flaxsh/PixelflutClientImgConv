@@ -17,41 +17,85 @@ class LinesBuffer:
             random.shuffle(encodedLines)
         self.__data = [bytes(l) for l in encodedLines]
 
-    def GetData(self, chunkCount=1, chunkIndex=0):
-        #chunkSize = math.ceil(len(self.__data) / chunkCount)
+    def GetDataChunk(self, chunkCount=1, chunkIndex=0):
+        #chunkSize = min(math.ceil(len(self.__data) / chunkCount), maxChunkSize)
         #startIndex = chunkSize * chunkIndex
-        #endIndex = min(chunkSize * (chunkIndex + 1) - 1, len(self.__data))
+        #endIndex = min(chunkSize * (chunkIndex + 1) - 1, len(self.__data) - 1)
         #return self.__data[startIndex:endIndex]
         return b"".join(self.__data[chunkIndex::chunkCount])
 
 
-class ImageSender:
-    def __init__(self, address, port, imageLines):
+class NetworkSender:
+    def __init__(self, address, port):
         self.__address = address
         self.__port = port
-        self.__dataBuffer = LinesBuffer(imageLines, randomize=True)
 
-    def __sendData(self, data, continuous=False, delay=0.0):
-        pixelSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        pixelSocket.connect((self.__address, self.__port))
+    def Send(self, data, continuous=False, delay=0.0):
+        raise NotImplementedException("must be defined in child class")
+
+class TCPSender(NetworkSender):
+    def __init__(self, address, port):
+        self.__address = address
+        self.__port = port
+
+    def Send(self, data, continuous=False, delay=0.0):
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect((self.__address, self.__port))
 
         if continuous:
             while True:
-                pixelSocket.sendall(data)
+                sock.sendall(data)
                 time.sleep(delay)
         else:
-            pixelSocket.sendall(data)
+            sock.sendall(data)
 
-        pixelSocket.shutdown(socket.SHUT_WR)
+class UDPSender(NetworkSender):
+    def __init__(self, address, port, mtu=1500):
+        self.__address = address
+        self.__port = port
+        self.__mtu = mtu
+
+    def Send(self, data, continuous=False, delay=0.0):
+        dataChunks = []
+        payloadLength = self.__mtu
+        if data[:self.__mtu][-1] != b"\n":
+            payloadLength = data[:self.__mtu].rfind(b"\n") + 1
+
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        while True:
+            while in
+                sock.sendto(data[startIndex:endIndex], (self.__address, self.__port))
+
+
+
+
+        chunkCount = math.ceil(len(data) / self.__mtu)
+        while True:
+            for i in range(chunkCount):
+                startIndex = payloadLength * i
+                endIndex = min(self.__mtu * (i + 1) - 1, len(data) - 1)
+                if not continuous:
+                    break
+                else:
+                    time.sleep(delay)
+
+
+class ImageSender:
+    def __init__(self, imageLines, sender=None):
+        if sender is None:
+            self.__sender = TCPSender("localhost", 1234)
+        else:
+            self.__sender = sender
+        self.__dataBuffer = LinesBuffer(imageLines, randomize=True)
 
     def Send(self, sync=False, threadCount=1):
         if sync and threadCount == 1:
-            self.__sendImage()
+            self.__sendData()
         else:
             threads = []
             for i in range(threadCount):
-                data = self.__dataBuffer.GetData(threadCount, i)
-                threads.append(threading.Thread(target=self.__sendData, args=(data,)))
+                data = self.__dataBuffer.GetDataChunk(threadCount, i)
+                threads.append(threading.Thread(target=self.__sender.Send, args=(data, True, 0.5)))
                 threads[i].start()
 
             if sync:
@@ -67,8 +111,11 @@ def parseArgs():
     
     parser.add_argument("-x", "--xoffset", type=int, default=0)
     parser.add_argument("-y", "--yoffset", type=int, default=0)
+
     parser.add_argument("-f", "--file")
     parser.add_argument("-l", "--linesFile")
+
+    parser.add_argument("-p", "--proto", choices=("tcp", "udp"), default="tcp")
 
     args = parser.parse_args()
     return args
@@ -88,11 +135,13 @@ def main():
         sys.exit(1)
 
     print("connecting to %s port %d" % (args.address, args.port))
-    sender = ImageSender(args.address, args.port, imageLines)
+    if args.proto == "tcp":
+        netSender = TCPSender(args.address, args.port)
+    else:
+        netSender = UDPSender(args.address, args.port)
+    sender = ImageSender(imageLines, netSender)
     print("sending lines... ", end="")
-    while True:
-        sender.Send(False, 5)
-        time.sleep(0.5)
+    sender.Send(False, 5)
     print("done")
 
 
