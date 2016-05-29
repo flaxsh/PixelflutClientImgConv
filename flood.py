@@ -57,27 +57,21 @@ class UDPSender(NetworkSender):
 
     def Send(self, data, continuous=False, delay=0.0):
         dataChunks = []
-        payloadLength = self.__mtu
-        if data[:self.__mtu][-1] != b"\n":
-            payloadLength = data[:self.__mtu].rfind(b"\n") + 1
+        startIndex = 0
+        while startIndex < len(data):
+            endIndex = data[startIndex:startIndex + self.__mtu].rfind(b"\n") + 1
+            dataChunks.append(data[startIndex:endIndex])
+            startIndex = endIndex
 
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         while True:
-            while in
-                sock.sendto(data[startIndex:endIndex], (self.__address, self.__port))
+            for dataChunk in dataChunks:
+                sock.sendto(dataChunk, (self.__address, self.__port))
 
-
-
-
-        chunkCount = math.ceil(len(data) / self.__mtu)
-        while True:
-            for i in range(chunkCount):
-                startIndex = payloadLength * i
-                endIndex = min(self.__mtu * (i + 1) - 1, len(data) - 1)
-                if not continuous:
-                    break
-                else:
-                    time.sleep(delay)
+            if continuous:
+                time.sleep(delay)
+            else:
+                break
 
 
 class ImageSender:
